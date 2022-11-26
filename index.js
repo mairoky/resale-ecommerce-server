@@ -17,20 +17,58 @@ app.get('/', (req, res) => {
 })
 
 // MongoDB Connection
+{/* mongodb+srv://db_admin:<password>@cluster0.v3j0rcs.mongodb.net/test  */ }
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.v3j0rcs.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 // console.log(uri);
+// Verify JWT
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send('Unauthorized Access');
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'forbidden Access' });
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
 
 async function run() {
     try {
         const database = client.db('resale_ecommerc');
         const usersCollection = database.collection('users');
 
+        // JWT
+        app.get('/jwt', async (req, res) => {
+            const email = req.query.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            if (user) {
+                const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
+                return res.send({ accessToken: token });
+            }
+            res.status(403).send({ accessToken: '' });
+        })
+        // Read All User
+        app.get('/users', async (req, res) => {
+
+            res.send(users);
+        })
+        // Create User
         app.post('/users', async (req, res) => {
             const user = req.body;
-            console.log(user);
-            const result = await usersCollection.insertOne(user);
-            res.send(result);
+            // console.log(user);
+            const query = { email: user.email };
+            const isUserEmailAvailable = await usersCollection.findOne(query);
+            if (!isUserEmailAvailable) {
+                const result = await usersCollection.insertOne(user);
+                return res.send(result);
+            }
+            res.send('Email Already Available');
         })
     }
     finally {
