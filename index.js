@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -53,11 +53,27 @@ async function run() {
             }
             res.status(403).send({ accessToken: '' });
         })
-        // Read All User
-        app.get('/users', async (req, res) => {
 
-            res.send(users);
+        app.get('/users/buyers', async (req, res) => {
+            const query = { role: 'buyer' };
+            const result = await usersCollection.find(query).toArray();
+            res.send(result);
         })
+
+        app.get('/users/sellers', async (req, res) => {
+            const query = { role: 'seller' };
+            const result = await usersCollection.find(query).toArray();
+            res.send(result);
+        })
+
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email };
+            const user = await usersCollection.findOne(query);
+            res.send(user);
+        })
+
+
         // Create User
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -71,12 +87,13 @@ async function run() {
             res.send('Email Already Available');
         })
 
-        app.get('/users/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { email };
-            const user = await usersCollection.findOne(query);
-            res.send(user);
+        app.delete('/users/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(filter);
+            res.send(result);
         })
+
     }
     finally {
 
