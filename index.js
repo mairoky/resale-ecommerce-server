@@ -41,6 +41,8 @@ async function run() {
     try {
         const database = client.db('resale_ecommerc');
         const usersCollection = database.collection('users');
+        const categoryCollection = database.collection('category');
+        const productsCollection = database.collection('products');
 
         // JWT
         app.get('/jwt', async (req, res) => {
@@ -73,7 +75,6 @@ async function run() {
             res.send(user);
         })
 
-
         // Create User
         app.post('/users', async (req, res) => {
             const user = req.body;
@@ -91,6 +92,46 @@ async function run() {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(filter);
+            res.send(result);
+        })
+
+        // Product Category
+        app.get('/category', async (req, res) => {
+            const category = await categoryCollection.find({}).toArray();
+            res.send(category);
+        })
+
+        // Products
+        app.get('/products/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { seller_email: email };
+            const products = await productsCollection.find(query).toArray();
+            res.send(products);
+        })
+
+        app.post('/products', async (req, res) => {
+            const product = req.body;
+            const result = await productsCollection.insertOne(product);
+            res.send(result);
+        })
+
+        app.put('/products/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    status: 'Sold'
+                }
+            }
+            const result = await productsCollection.updateOne(filter, updatedDoc, options);
+            res.send(result);
+        })
+
+        app.delete('/products/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) };
+            const result = await productsCollection.deleteOne(filter);
             res.send(result);
         })
 
