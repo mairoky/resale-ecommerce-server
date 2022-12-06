@@ -178,14 +178,14 @@ async function run() {
 
         app.get('/category/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { product_category_id: id };
+            const query = { product_category_id: id, status: 'Available' };
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         });
 
         // Products
         app.get('/products', async (req, res) => {
-            const query = { advertise: true };
+            const query = { advertise: true, status: 'Available' };
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         });
@@ -259,7 +259,7 @@ async function run() {
             const productUpdate = { _id: ObjectId(productId) };
             const productDoc = {
                 $set: {
-                    paid: true
+                    status: 'Sold'
                 }
             }
             const products = await productsCollection.updateOne(productUpdate, productDoc);
